@@ -1,0 +1,23 @@
+<?php
+
+namespace App\Components;
+
+use PhpToro\Component;
+use PhpToro\UI\View;
+use PhpToro\UI\Text;
+
+class {{.Name}} extends Component
+{
+    public function __construct(
+        // Define your props here
+    ) {}
+
+    public function render(): View
+    {
+        return (new View())
+            ->append(
+                (new Text('{{.Name}}'))
+                    ->fontSize(16),
+            );
+    }
+}

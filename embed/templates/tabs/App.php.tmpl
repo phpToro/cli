@@ -1,0 +1,18 @@
+<?php
+
+namespace App;
+
+use PhpToro\Application;
+use PhpToro\Navigation\TabNavigator;
+use App\Screens\HomeScreen;
+use App\Screens\SettingsScreen;
+
+class App extends Application
+{
+    public function navigator(): TabNavigator
+    {
+        return TabNavigator::make()
+            ->tab('home', HomeScreen::class, label: 'Home', icon: 'house')
+            ->tab('settings', SettingsScreen::class, label: 'Settings', icon: 'gear');
+    }
+}

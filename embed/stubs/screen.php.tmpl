@@ -1,0 +1,21 @@
+<?php
+
+namespace App\Screens;
+
+use PhpToro\Screen;
+use PhpToro\UI\View;
+use PhpToro\UI\Text;
+
+class {{.Name}}Screen extends Screen
+{
+    public function render(): View
+    {
+        return (new View())
+            ->padding(24)
+            ->append(
+                (new Text('{{.Name}}'))
+                    ->fontSize(28)
+                    ->fontWeight('bold'),
+            );
+    }
+}

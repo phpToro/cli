@@ -1,0 +1,25 @@
+<?php
+
+namespace App\Screens;
+
+use PhpToro\Screen;
+use PhpToro\UI\View;
+use PhpToro\UI\Text;
+
+class HomeScreen extends Screen
+{
+    public function render(): View
+    {
+        return (new View())
+            ->padding(24)
+            ->append(
+                (new Text('Home'))
+                    ->fontSize(28)
+                    ->fontWeight('bold'),
+                (new Text('Welcome to {{.AppName}}!'))
+                    ->fontSize(16)
+                    ->color('#666666')
+                    ->marginTop(8),
+            );
+    }
+}
