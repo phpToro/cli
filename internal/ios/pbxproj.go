@@ -34,6 +34,7 @@ func coreSwiftFiles(target string) []pbxFile {
 		{"PhpToroApp.swift", target + "/Engine/PhpToroApp.swift", "Engine", "sourcecode.swift"},
 		{"DebugLogger.swift", target + "/Engine/DebugLogger.swift", "Engine", "sourcecode.swift"},
 		{"StateHandler.swift", target + "/Handlers/StateHandler.swift", "Handlers", "sourcecode.swift"},
+		{"LinkingHandler.swift", target + "/Handlers/LinkingHandler.swift", "Handlers", "sourcecode.swift"},
 	}
 }
 

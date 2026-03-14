@@ -342,6 +342,7 @@ final class PhpToroApp {
     private func registerPlugins() {
         let host = PluginHost.shared
         host.register(StateHandler())
+        host.register(LinkingHandler())
 `)
 
 	for _, line := range registrations {
