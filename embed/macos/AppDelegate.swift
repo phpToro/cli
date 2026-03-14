@@ -23,6 +23,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         app.launch(in: window)
         NSLog("[phpToro] AppDelegate: app.launch() returned")
 
+        // Setup menu bar (after launch so coordinator exists for action routing)
+        app.setupMenuBar()
+
         window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
 

@@ -15,8 +15,9 @@ final class AppCoordinator {
         self.kernel.coordinator = self
     }
 
-    /// Boot the app.
-    func start(dataDir: String) {
+    /// Boot the app. Returns the full init config.
+    @discardableResult
+    func start(dataDir: String) -> [String: Any] {
         guard let config = kernel.initialize(dataDir: dataDir) else {
             fatalError("Failed to initialize phpToro app")
         }
@@ -26,6 +27,7 @@ final class AppCoordinator {
         }
 
         setupNavigator(navigator)
+        return config
     }
 
     func currentScreenVC() -> ScreenViewController? {
@@ -154,6 +156,15 @@ final class AppCoordinator {
                 if let title = directive["title"] as? String {
                     self.window.title = title
                 }
+
+            case "openWindow":
+                let windowId = directive["windowId"] as? String ?? UUID().uuidString
+                let options = directive["options"] as? [String: Any] ?? [:]
+                WindowManager.shared.openWindow(id: windowId, screen: screen, params: params, options: options)
+
+            case "closeWindow":
+                let windowId = directive["windowId"] as? String ?? ""
+                WindowManager.shared.closeWindow(id: windowId)
 
             case "switchTab":
                 if let split = self.window.contentViewController as? NSSplitViewController,

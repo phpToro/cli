@@ -40,6 +40,23 @@ window.phpToro = {
     }
 };
 
+// Context menu support (macOS)
+document.addEventListener('contextmenu', function(e) {
+    var el = e.target.closest('[data-context-menu]');
+    if (el) {
+        e.preventDefault();
+        var menuId = el.getAttribute('data-context-menu');
+        var itemData = el.getAttribute('data-context-data');
+        window.webkit.messageHandlers.phpToro.postMessage({
+            type: 'contextMenu',
+            menuId: menuId,
+            data: itemData ? JSON.parse(itemData) : {},
+            x: e.clientX,
+            y: e.clientY
+        });
+    }
+});
+
 // Hide broken images
 document.addEventListener('error', function(e) {
     if (e.target.tagName === 'IMG') { e.target.style.display = 'none'; }

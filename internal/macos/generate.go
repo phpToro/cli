@@ -292,6 +292,8 @@ final class PhpToroApp {
 
     private(set) var coordinator: AppCoordinator?
     private var hotReloadClient: HotReloadClient?
+    private var menuBarManager: MenuBarManager?
+    private var initConfig: [String: Any]?
 
     func launch(in window: NSWindow) {
         dbg.configure()
@@ -315,9 +317,11 @@ final class PhpToroApp {
         registerPlugins()
 
         let coordinator = AppCoordinator(window: window, documentRoot: documentRoot)
-        coordinator.start(dataDir: dataDir)
+        let config = coordinator.start(dataDir: dataDir)
         self.coordinator = coordinator
+        self.initConfig = config
 
+        WindowManager.shared.configure(coordinator: coordinator)
         wireAsyncCallbacks()
 
         #if DEBUG
@@ -334,6 +338,7 @@ final class PhpToroApp {
         host.register(StateHandler())
         host.register(LinkingHandler())
         host.register(PlatformHandler())
+        host.register(WindowHandler())
 `)
 
 	for _, line := range registrations {
@@ -341,6 +346,25 @@ final class PhpToroApp {
 	}
 
 	b.WriteString(`    }
+
+    func setupMenuBar() {
+        guard let coordinator = coordinator else { return }
+        let manager = MenuBarManager(coordinator: coordinator)
+        let customMenus = initConfig?["menuBar"] as? [[String: Any]]
+        manager.setupMenuBar(customMenus: customMenus)
+        self.menuBarManager = manager
+
+        // Setup toolbar if configured
+        if let toolbarConfig = initConfig?["toolbar"] as? [[String: Any]] {
+            let toolbar = ToolbarManager(window: coordinator.window, coordinator: coordinator)
+            toolbar.setup(config: toolbarConfig)
+        }
+    }
+
+    /// Update menus at runtime (called from PHP via bridge).
+    func updateMenuBar(_ menus: [[String: Any]]) {
+        menuBarManager?.updateCustomMenus(menus)
+    }
 
     private func wireAsyncCallbacks() {
         dbg.log("App", "wireAsyncCallbacks() starting")

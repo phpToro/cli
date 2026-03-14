@@ -261,6 +261,12 @@ final class ScreenViewController: NSViewController, WKScriptMessageHandler {
                 executeCallback(ref: ref, data: data)
             }
 
+        case "contextMenu":
+            let menuId = body["menuId"] as? String ?? ""
+            let data = body["data"] as? [String: Any] ?? [:]
+            dbg.log("Bridge", "\(shortName) contextMenu: \(menuId)")
+            showContextMenu(menuId: menuId, data: data)
+
         case "log":
             let level = body["level"] as? String ?? "log"
             let msg = body["message"] as? String ?? ""
@@ -322,6 +328,52 @@ final class ScreenViewController: NSViewController, WKScriptMessageHandler {
 
         view.addSubview(overlay)
         errorOverlay = overlay
+    }
+
+    /// Handle response from menu action (same pipeline as regular responses).
+    func handleMenuResponse(_ response: [String: Any]) {
+        handleResponse(response)
+    }
+
+    /// Show a context menu at the current mouse location.
+    private func showContextMenu(menuId: String, data: [String: Any]) {
+        let response = kernel.contextMenu(screen: screenClass, menuId: menuId, data: data)
+        guard let items = response?["items"] as? [[String: Any]], !items.isEmpty else { return }
+
+        let menu = NSMenu()
+        for itemConfig in items {
+            if let separator = itemConfig["separator"] as? Bool, separator {
+                menu.addItem(.separator())
+                continue
+            }
+            let title = itemConfig["title"] as? String ?? ""
+            let action = itemConfig["action"] as? String ?? ""
+            let disabled = itemConfig["disabled"] as? Bool ?? false
+
+            let menuItem = NSMenuItem(title: title, action: #selector(contextMenuItemClicked(_:)), keyEquivalent: "")
+            menuItem.target = self
+            menuItem.representedObject = action
+            menuItem.isEnabled = !disabled
+            menu.addItem(menuItem)
+        }
+
+        if let event = NSApp.currentEvent {
+            NSMenu.popUpContextMenu(menu, with: event, for: webView)
+        }
+    }
+
+    @objc private func contextMenuItemClicked(_ sender: NSMenuItem) {
+        guard let action = sender.representedObject as? String else { return }
+        dbg.log("Screen", "\(shortName) context menu action: \(action)")
+        executeAction(action)
+    }
+
+    /// Handle a broadcast event from the event bus.
+    func handleEvent(name: String, data: Any?) {
+        dbg.log("Screen", "\(shortName) received event: \(name)")
+        var eventData: [String: Any] = ["event": name]
+        if let data = data { eventData["data"] = data }
+        kernel.sendLifecycle(screen: screenClass, event: "event", data: eventData)
     }
 
     @objc private func reloadFromError() {

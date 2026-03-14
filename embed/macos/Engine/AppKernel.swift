@@ -94,6 +94,33 @@ final class AppKernel {
         _ = sendCommand(cmd)
     }
 
+    /// Request context menu items from PHP.
+    func contextMenu(screen: String, menuId: String, data: [String: Any]) -> [String: Any]? {
+        let shortScreen = screen.split(separator: "\\").last.map(String.init) ?? screen
+        dbg.log("Kernel", "contextMenu(\(shortScreen), menuId: \(menuId))")
+        var cmd: [String: Any] = [
+            "command": "contextMenu",
+            "screen": screen,
+            "menuId": menuId,
+        ]
+        if !data.isEmpty { cmd["data"] = data }
+        return sendCommand(cmd)
+    }
+
+    /// Execute a menu action on a screen.
+    func menuAction(screen: String, action: String) -> [String: Any]? {
+        let shortScreen = screen.split(separator: "\\").last.map(String.init) ?? screen
+        dbg.log("Kernel", "menuAction(\(shortScreen), action: \(action))")
+        let result = sendCommand([
+            "command": "menuAction",
+            "screen": screen,
+            "action": action,
+            "renderMode": "webview",
+        ])
+        logResponse("menuAction(\(shortScreen).\(action))", result)
+        return result
+    }
+
     /// Resolve a screen name for deep linking.
     func resolveDeepLink(screen: String) -> String? {
         let result = sendCommand([
