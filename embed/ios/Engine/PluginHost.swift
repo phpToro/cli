@@ -6,6 +6,13 @@ protocol NativeHandler {
     func handle(method: String, args: [String: Any]) -> Any?
 }
 
+/// Protocol for handlers that send async results back to PHP screens.
+/// Plugins opt in by conforming to this — no hardcoded list needed.
+/// Class-only so callback wiring works by reference.
+protocol AsyncHandler: AnyObject, NativeHandler {
+    var onAsyncCallback: ((String, Any?) -> Void)? { get set }
+}
+
 /// PluginHost receives all phptoro_native_call() dispatches from the C bridge
 /// and routes them to the appropriate Swift handler.
 final class PluginHost {
@@ -20,6 +27,18 @@ final class PluginHost {
 
     func handler(for namespace: String) -> NativeHandler? {
         return handlers[namespace]
+    }
+
+    /// Wire async callbacks on all handlers that conform to AsyncHandler.
+    func wireAsyncCallbacks(_ callback: @escaping (String, Any?) -> Void) {
+        dbg.log("PluginHost", "wireAsyncCallbacks: \(handlers.count) handlers registered")
+        for (ns, handler) in handlers {
+            dbg.log("PluginHost", "  checking \(ns): type=\(type(of: handler)), isAsyncHandler=\(handler is (any AsyncHandler))")
+            if let async = handler as? (any AsyncHandler) {
+                async.onAsyncCallback = callback
+                dbg.log("PluginHost", "  wired async callback for \(ns)")
+            }
+        }
     }
 
     /// Called from the C native handler callback.

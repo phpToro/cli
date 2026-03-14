@@ -87,13 +87,16 @@ final class PhpToroApp {
 
     /// Wire plugins that send async responses back to the current screen.
     private func wireAsyncCallbacks() {
-        if let http = PluginHost.shared.handler(for: "http") as? HttpHandler {
-            http.onAsyncCallback = { [weak self] ref, data in
-                DispatchQueue.main.async {
-                    self?.coordinator?.currentScreenVC()?.executeCallback(ref: ref, data: data)
-                }
+        dbg.log("App", "wireAsyncCallbacks() starting")
+        PluginHost.shared.wireAsyncCallbacks { [weak self] ref, data in
+            dbg.log("App", "async callback received: ref=\(ref), data=\(String(describing: data))")
+            DispatchQueue.main.async {
+                let vc = self?.coordinator?.currentScreenVC()
+                dbg.log("App", "dispatching callback to VC: \(vc == nil ? "nil" : "found")")
+                vc?.executeCallback(ref: ref, data: data)
             }
         }
+        dbg.log("App", "wireAsyncCallbacks() complete")
     }
 
     // MARK: - Dev Mode

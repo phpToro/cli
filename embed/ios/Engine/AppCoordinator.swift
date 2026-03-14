@@ -8,6 +8,7 @@ final class AppCoordinator {
 
     private var navigationController: UINavigationController?
     private var tabBarController: UITabBarController?
+    private(set) weak var activeScreenVC: ScreenViewController?
 
     init(window: UIWindow, documentRoot: String) {
         self.window = window
@@ -30,10 +31,12 @@ final class AppCoordinator {
 
     /// Resolve the current visible ScreenViewController (for async callbacks).
     func currentScreenVC() -> ScreenViewController? {
-        if let nav = currentNav() {
-            return nav.topViewController as? ScreenViewController
-        }
-        return nil
+        return activeScreenVC
+    }
+
+    /// Called by ScreenViewController.viewDidAppear to register as active.
+    func setActiveScreen(_ vc: ScreenViewController) {
+        activeScreenVC = vc
     }
 
     // MARK: - Navigator Setup
@@ -206,10 +209,7 @@ final class AppCoordinator {
     // MARK: - Helpers
 
     private func currentNav() -> UINavigationController? {
-        if let tabBar = tabBarController {
-            return tabBar.selectedViewController as? UINavigationController
-        }
-        return navigationController
+        return activeScreenVC?.navigationController ?? navigationController
     }
 
     private func extractDeepLinkParams(from url: URL, pathComponents: [String]) -> [String: Any] {

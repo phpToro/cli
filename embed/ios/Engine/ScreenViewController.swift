@@ -24,11 +24,28 @@ final class ScreenViewController: UIViewController, WKScriptMessageHandler {
     private var errorOverlay: UIView?
     var prefersNavBarHidden = false
 
-    private var shortName: String {
-        screenClass.split(separator: "\\").last.map(String.init) ?? screenClass
-    }
+    private let shortName: String
 
     private lazy var pageFileName: String = "page-\(ObjectIdentifier(self).hashValue).html"
+
+    /// Cached asset tags — computed once since plugin assets and app.css/app.js don't change at runtime.
+    private static let cachedAssetTags: (pluginCSS: String, pluginJS: String, appCSS: String, appJS: String) = {
+        var css = ""
+        var js = ""
+        for asset in PhpToroApp.pluginAssets {
+            if asset.hasSuffix(".css") {
+                css += "        <link rel=\"stylesheet\" href=\"\(asset)\">\n"
+            } else if asset.hasSuffix(".js") {
+                js += "        <script src=\"\(asset)\"></script>\n"
+            }
+        }
+        let dir = ScreenViewController.webDir
+        let appCSS = FileManager.default.fileExists(atPath: dir.appendingPathComponent("app.css").path)
+            ? "        <link rel=\"stylesheet\" href=\"app.css\">\n" : ""
+        let appJS = FileManager.default.fileExists(atPath: dir.appendingPathComponent("app.js").path)
+            ? "        <script src=\"app.js\"></script>\n" : ""
+        return (css, js, appCSS, appJS)
+    }()
 
     /// Writable directory containing CSS, JS, and the dynamic HTML page.
     /// Created once at startup by copying bundle assets/ to Caches/phptoro-web/.
@@ -83,6 +100,7 @@ final class ScreenViewController: UIViewController, WKScriptMessageHandler {
     init(screenClass: String, kernel: AppKernel) {
         self.screenClass = screenClass
         self.kernel = kernel
+        self.shortName = screenClass.split(separator: "\\").last.map(String.init) ?? screenClass
         super.init(nibName: nil, bundle: nil)
         dbg.log("Screen", "init \(shortName)")
     }
@@ -134,6 +152,7 @@ final class ScreenViewController: UIViewController, WKScriptMessageHandler {
 
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
+        kernel.coordinator?.setActiveScreen(self)
         kernel.sendLifecycle(screen: screenClass, event: "focus")
     }
 
@@ -201,26 +220,8 @@ final class ScreenViewController: UIViewController, WKScriptMessageHandler {
     /// them via `phptoro://file/<path>`, avoiding WKWebView's `allowingReadAccessTo` limitations.
     private func loadPage(_ contentHtml: String) {
         let safeBottom = view.safeAreaInsets.bottom
+        let tags = Self.cachedAssetTags
 
-        // Build plugin asset tags (injected between framework and developer assets)
-        var pluginCSSLinks = ""
-        var pluginJSScripts = ""
-        for asset in PhpToroApp.pluginAssets {
-            if asset.hasSuffix(".css") {
-                pluginCSSLinks += "        <link rel=\"stylesheet\" href=\"\(asset)\">\n"
-            } else if asset.hasSuffix(".js") {
-                pluginJSScripts += "        <script src=\"\(asset)\"></script>\n"
-            }
-        }
-
-        // Only include app.css/app.js tags if the files exist in webDir
-        let webDir = Self.webDir
-        let appCSSTag = FileManager.default.fileExists(atPath: webDir.appendingPathComponent("app.css").path)
-            ? "        <link rel=\"stylesheet\" href=\"app.css\">\n" : ""
-        let appJSTag = FileManager.default.fileExists(atPath: webDir.appendingPathComponent("app.js").path)
-            ? "        <script src=\"app.js\"></script>\n" : ""
-
-        // Load order: framework → plugins → developer (developer overrides last)
         let html = """
         <!DOCTYPE html>
         <html>
@@ -228,22 +229,19 @@ final class ScreenViewController: UIViewController, WKScriptMessageHandler {
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
         <link rel="stylesheet" href="phptoro.ios.css">
-        \(pluginCSSLinks)\(appCSSTag)<style>#root { min-height: 100%; width: 100%; padding-bottom: \(Int(safeBottom))px; }</style>
+        \(tags.pluginCSS)\(tags.appCSS)<style>#root { min-height: 100%; width: 100%; padding-bottom: \(Int(safeBottom))px; }</style>
         </head>
         <body>
         <div id="root">\(contentHtml)</div>
         <script src="phptoro.js"></script>
-        \(pluginJSScripts)\(appJSTag)</body>
+        \(tags.pluginJS)\(tags.appJS)</body>
         </html>
         """
 
-        let pageURL = webDir.appendingPathComponent(pageFileName)
-        dbg.log("Screen", "\(shortName) writing HTML to: \(pageURL.path)")
-        dbg.log("Screen", "\(shortName) webDir contents: \((try? FileManager.default.contentsOfDirectory(atPath: webDir.path)) ?? [])")
+        let pageURL = Self.webDir.appendingPathComponent(pageFileName)
         do {
             try html.write(to: pageURL, atomically: true, encoding: .utf8)
             let schemeURL = URL(string: "phptoro://localhost/\(pageFileName)")!
-            dbg.log("Screen", "\(shortName) loading via custom scheme: \(schemeURL.absoluteString)")
             webView.load(URLRequest(url: schemeURL))
         } catch {
             dbg.error("Screen", "\(shortName) failed to write page: \(error)")

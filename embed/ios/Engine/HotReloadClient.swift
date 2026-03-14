@@ -36,6 +36,7 @@ final class HotReloadClient: NSObject, URLSessionWebSocketDelegate {
     }
 
     func connect() {
+        session?.invalidateAndCancel()
         session = URLSession(configuration: .default, delegate: self, delegateQueue: .main)
         webSocketTask = session?.webSocketTask(with: url)
         webSocketTask?.resume()

@@ -232,7 +232,6 @@ void phptoro_set_native_handler(phptoro_native_handler_t handler);
 func generatePhpToroApp(plugins []plugin.ResolvedPlugin, pluginAssets []string) string {
 	var imports []string
 	var registrations []string
-	var asyncWiring []string
 
 	// Collect unique imports
 	importSet := map[string]bool{"UIKit": true}
@@ -264,36 +263,8 @@ func generatePhpToroApp(plugins []plugin.ResolvedPlugin, pluginAssets []string) 
 		}
 	}
 
-	// Wire async callbacks for plugins that have them
-	asyncPlugins := map[string]bool{"http": true, "audio": true, "camera": true}
-	for _, p := range plugins {
-		if !asyncPlugins[p.Manifest.Namespace] {
-			continue
-		}
-		ns := p.Manifest.Namespace
-		ios, ok := p.Manifest.Platforms["ios"]
-		if !ok {
-			continue
-		}
-		sources := ios.Handlers
-		if len(sources) == 0 {
-			sources = ios.Files
-		}
-		if len(sources) == 0 {
-			continue
-		}
-		// Extract handler class name
-		base := filepath.Base(sources[0])
-		className := strings.TrimSuffix(base, filepath.Ext(base))
-
-		asyncWiring = append(asyncWiring, fmt.Sprintf(`        if let handler = PluginHost.shared.handler(for: "%s") as? %s {
-            handler.onAsyncCallback = { [weak self] ref, data in
-                DispatchQueue.main.async {
-                    self?.coordinator?.currentScreenVC()?.executeCallback(ref: ref, data: data)
-                }
-            }
-        }`, ns, className))
-	}
+	// Async callbacks are wired generically via the AsyncHandler protocol.
+	// No per-plugin wiring needed — see wireAsyncCallbacks() in the generated code.
 
 	// Build imports string
 	importLines := "import UIKit\n"
@@ -380,13 +351,17 @@ final class PhpToroApp {
 	b.WriteString(`    }
 
     private func wireAsyncCallbacks() {
-`)
-
-	for _, line := range asyncWiring {
-		b.WriteString(line + "\n")
-	}
-
-	b.WriteString(`    }
+        dbg.log("App", "wireAsyncCallbacks() starting")
+        PluginHost.shared.wireAsyncCallbacks { [weak self] ref, data in
+            dbg.log("App", "async callback received: ref=\(ref), data=\(String(describing: data))")
+            DispatchQueue.main.async {
+                let vc = self?.coordinator?.currentScreenVC()
+                dbg.log("App", "dispatching callback to VC: \(vc == nil ? "nil" : "found")")
+                vc?.executeCallback(ref: ref, data: data)
+            }
+        }
+        dbg.log("App", "wireAsyncCallbacks() complete")
+    }
 
     // MARK: - Dev Mode
 
