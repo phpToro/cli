@@ -35,7 +35,12 @@ type SplashConfig struct {
 }
 
 type PlatformsConfig struct {
-	IOS *IOSConfig `json:"ios,omitempty"`
+	IOS   *IOSConfig   `json:"ios,omitempty"`
+	MacOS *MacOSConfig `json:"macos,omitempty"`
+}
+
+type MacOSConfig struct {
+	DeploymentTarget string `json:"deploymentTarget,omitempty"`
 }
 
 type IOSConfig struct {

@@ -269,6 +269,91 @@ func (p *ResolvedPlugin) IOSBackgroundModes() []string {
 	return platform.BackgroundModes
 }
 
+// MacOSFiles returns the handler file paths for the "macos" platform.
+func (p *ResolvedPlugin) MacOSFiles() []string {
+	platform, ok := p.Manifest.Platforms["macos"]
+	if !ok {
+		return nil
+	}
+	sources := platform.Handlers
+	if len(sources) == 0 {
+		sources = platform.Files
+	}
+	var paths []string
+	for _, f := range sources {
+		paths = append(paths, filepath.Join(p.LocalPath, f))
+	}
+	return paths
+}
+
+// MacOSFrameworks returns additional frameworks needed by this plugin on macOS.
+func (p *ResolvedPlugin) MacOSFrameworks() []string {
+	platform, ok := p.Manifest.Platforms["macos"]
+	if !ok {
+		return nil
+	}
+	return platform.Frameworks
+}
+
+// MacOSPermissions returns macOS permissions (Info.plist keys) needed by this plugin.
+func (p *ResolvedPlugin) MacOSPermissions() []Permission {
+	platform, ok := p.Manifest.Platforms["macos"]
+	if !ok {
+		return nil
+	}
+	return platform.Permissions
+}
+
+// MacOSCSS returns the platform CSS file paths for the macOS platform.
+func (p *ResolvedPlugin) MacOSCSS() []string {
+	platform, ok := p.Manifest.Platforms["macos"]
+	if !ok {
+		return nil
+	}
+	var paths []string
+	for _, f := range platform.CSS {
+		paths = append(paths, filepath.Join(p.LocalPath, f))
+	}
+	return paths
+}
+
+// CollectMacOSAssets gathers all plugin JS and CSS files for the macOS bundle.
+func CollectMacOSAssets(plugins []ResolvedPlugin) (jsAssets []PluginAsset, cssAssets []PluginAsset) {
+	for _, p := range plugins {
+		ns := p.Manifest.Namespace
+
+		for _, src := range p.CrossPlatformJS() {
+			jsAssets = append(jsAssets, PluginAsset{
+				SrcPath:    src,
+				BundleName: "plugin-" + ns + ".js",
+			})
+		}
+
+		for _, src := range p.MacOSCSS() {
+			cssAssets = append(cssAssets, PluginAsset{
+				SrcPath:    src,
+				BundleName: "plugin-" + ns + ".css",
+			})
+		}
+	}
+	return
+}
+
+// CollectMacOSPermissions gathers all macOS permissions from a list of plugins (deduplicated).
+func CollectMacOSPermissions(plugins []ResolvedPlugin) []Permission {
+	seen := map[string]bool{}
+	var result []Permission
+	for _, p := range plugins {
+		for _, perm := range p.MacOSPermissions() {
+			if !seen[perm.Key] {
+				seen[perm.Key] = true
+				result = append(result, perm)
+			}
+		}
+	}
+	return result
+}
+
 // CollectIOSPermissions gathers all permissions from a list of plugins (deduplicated).
 func CollectIOSPermissions(plugins []ResolvedPlugin) []Permission {
 	seen := map[string]bool{}
