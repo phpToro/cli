@@ -4,15 +4,14 @@ import (
 	"embed"
 
 	"github.com/phpToro/cli/cmd"
-	"github.com/phpToro/cli/internal/generator"
-	"github.com/phpToro/cli/internal/project"
+	"github.com/phpToro/cli/internal/ios"
 )
 
 //go:embed all:embed
 var embedFS embed.FS
 
 func main() {
-	project.EmbedFS = embedFS
-	generator.StubFS = embedFS
+	ios.EmbedFS = embedFS
+	ios.NativeFS = embedFS
 	cmd.Execute()
 }

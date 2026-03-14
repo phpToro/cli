@@ -14,7 +14,7 @@ var Verbose bool
 var rootCmd = &cobra.Command{
 	Use:   "phptoro",
 	Short: "phpToro — Build native mobile apps with PHP",
-	Long:  "phpToro CLI — Create, develop, and build native iOS & Android apps using PHP.",
+	Long:  "phpToro CLI — Develop and build native iOS apps using PHP.",
 	SilenceUsage:  true,
 	SilenceErrors: true,
 }

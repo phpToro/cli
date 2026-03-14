@@ -12,7 +12,7 @@ import (
 var buildCmd = &cobra.Command{
 	Use:   "build <platform>",
 	Short: "Build a release binary",
-	Long:  "Build a release binary for the given platform.\n\nPlatforms: ios, android",
+	Long:  "Build a release binary for the given platform.\n\nPlatforms: ios",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		platform := args[0]
@@ -35,12 +35,8 @@ var buildCmd = &cobra.Command{
 			if err := runtime.EnsureRuntime("ios-arm64"); err != nil {
 				return err
 			}
-		case "android":
-			if err := runtime.EnsureRuntime("android-arm64"); err != nil {
-				return err
-			}
 		default:
-			return fmt.Errorf("unknown platform %q (use: ios, android)", platform)
+			return fmt.Errorf("unknown platform %q (use: ios)", platform)
 		}
 
 		// TODO: Generate platform folder, compile, sign, produce IPA/AAB

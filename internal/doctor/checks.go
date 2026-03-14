@@ -69,23 +69,6 @@ func AllChecks() []Check {
 			},
 		},
 		{
-			Name:     "Android SDK",
-			Required: false,
-			Run: func() (string, error) {
-				home := os.Getenv("ANDROID_HOME")
-				if home == "" {
-					home = os.Getenv("ANDROID_SDK_ROOT")
-				}
-				if home == "" {
-					return "", fmt.Errorf("ANDROID_HOME not set")
-				}
-				if _, err := os.Stat(home); err != nil {
-					return "", fmt.Errorf("ANDROID_HOME=%s does not exist", home)
-				}
-				return home, nil
-			},
-		},
-		{
 			Name:     "Go",
 			Required: false,
 			Run: func() (string, error) {

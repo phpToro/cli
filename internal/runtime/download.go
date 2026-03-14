@@ -40,8 +40,61 @@ func TargetDir(target string) string {
 }
 
 func IsInstalled(target string) bool {
+	// Check exact match first
 	info, err := os.Stat(TargetDir(target))
-	return err == nil && info.IsDir()
+	if err == nil && info.IsDir() {
+		return true
+	}
+	// Check for versioned directory (e.g. php-8.5.3-ios-arm64-sim)
+	return FindRuntimeDir(target) != ""
+}
+
+// FindRuntimeDir finds the actual runtime directory for a target.
+// Handles both versioned dirs (php-8.5.3-ios-arm64-sim) and download dirs
+// where the tar extracts nested (ios-arm64-sim/php-8.5.3-ios-arm64-sim/).
+func FindRuntimeDir(target string) string {
+	base := Dir()
+	entries, err := os.ReadDir(base)
+	if err != nil {
+		return ""
+	}
+
+	// First pass: prefer versioned directories (e.g. php-X.Y.Z-target)
+	for _, e := range entries {
+		if e.IsDir() && strings.HasSuffix(e.Name(), target) && strings.HasPrefix(e.Name(), "php-") {
+			dir := filepath.Join(base, e.Name())
+			if hasRuntimeFiles(dir) {
+				return dir
+			}
+		}
+	}
+
+	// Second pass: check for nested extraction (target/php-X.Y.Z-target/)
+	for _, e := range entries {
+		if e.IsDir() && e.Name() == target {
+			dir := filepath.Join(base, e.Name())
+			// Check for nested versioned dir
+			nested, _ := os.ReadDir(dir)
+			for _, n := range nested {
+				if n.IsDir() && strings.HasSuffix(n.Name(), target) {
+					ndir := filepath.Join(dir, n.Name())
+					if hasRuntimeFiles(ndir) {
+						return ndir
+					}
+				}
+			}
+			if hasRuntimeFiles(dir) {
+				return dir
+			}
+		}
+	}
+
+	return ""
+}
+
+func hasRuntimeFiles(dir string) bool {
+	_, err := os.Stat(filepath.Join(dir, "lib"))
+	return err == nil
 }
 
 func EnsureRuntime(target string) error {

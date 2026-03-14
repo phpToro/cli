@@ -1,8 +1,10 @@
 package cmd
 
 import (
-	"github.com/phpToro/cli/internal/composer"
+	"fmt"
+
 	"github.com/phpToro/cli/internal/config"
+	"github.com/phpToro/cli/internal/plugin"
 	"github.com/phpToro/cli/internal/ui"
 	"github.com/spf13/cobra"
 )
@@ -12,9 +14,9 @@ var pluginCmd = &cobra.Command{
 	Short: "Manage native plugins",
 }
 
-var pluginInstallCmd = &cobra.Command{
-	Use:   "install <package>",
-	Short: "Install a native plugin",
+var pluginAddCmd = &cobra.Command{
+	Use:   "add <repo>",
+	Short: "Install a plugin from GitHub (e.g. phpToro/plugin-storage)",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		root, err := config.FindProjectRoot()
@@ -22,22 +24,22 @@ var pluginInstallCmd = &cobra.Command{
 			return err
 		}
 
-		pkg := args[0]
-		ui.Info("Installing plugin: " + pkg)
+		repo := args[0]
+		ui.Info("Installing plugin: " + repo)
 
-		if err := composer.Require(root, pkg); err != nil {
+		if err := plugin.Add(root, repo); err != nil {
 			return err
 		}
 
-		ui.Success("Plugin installed: " + pkg)
-		ui.Dim("  Run 'phptoro dev:ios-sim' to regenerate platform folders with new permissions.")
+		ui.Success("Plugin installed: " + repo)
+		ui.Dim("  Added to phptoro.json — will be included on next build.")
 		return nil
 	},
 }
 
 var pluginRemoveCmd = &cobra.Command{
-	Use:   "remove <package>",
-	Short: "Remove a native plugin",
+	Use:   "remove <repo>",
+	Short: "Remove an installed plugin",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		root, err := config.FindProjectRoot()
@@ -45,14 +47,14 @@ var pluginRemoveCmd = &cobra.Command{
 			return err
 		}
 
-		pkg := args[0]
-		ui.Info("Removing plugin: " + pkg)
+		repo := args[0]
+		ui.Info("Removing plugin: " + repo)
 
-		if err := composer.Remove(root, pkg); err != nil {
+		if err := plugin.Remove(root, repo); err != nil {
 			return err
 		}
 
-		ui.Success("Plugin removed: " + pkg)
+		ui.Success("Plugin removed: " + repo)
 		return nil
 	},
 }
@@ -61,19 +63,35 @@ var pluginListCmd = &cobra.Command{
 	Use:   "list",
 	Short: "List installed plugins",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		_, err := config.FindProjectRoot()
+		root, err := config.FindProjectRoot()
 		if err != nil {
 			return err
 		}
 
-		// TODO: Read composer.lock, filter phptoro plugins by checking for plugin.json
-		ui.Info("No plugins installed")
+		plugins, err := plugin.List(root)
+		if err != nil {
+			return err
+		}
+
+		if len(plugins) == 0 {
+			ui.Info("No plugins installed")
+			ui.Line("")
+			ui.Dim("  Install one with: phptoro plugin add phpToro/plugin-storage")
+			return nil
+		}
+
+		ui.Header("Installed plugins")
+		ui.Line("")
+		for _, p := range plugins {
+			fmt.Printf("  %s (%s)\n", p.Repo, p.Version)
+		}
+		ui.Line("")
 		return nil
 	},
 }
 
 func init() {
-	pluginCmd.AddCommand(pluginInstallCmd)
+	pluginCmd.AddCommand(pluginAddCmd)
 	pluginCmd.AddCommand(pluginRemoveCmd)
 	pluginCmd.AddCommand(pluginListCmd)
 	rootCmd.AddCommand(pluginCmd)

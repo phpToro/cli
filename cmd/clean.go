@@ -21,7 +21,7 @@ var cleanCmd = &cobra.Command{
 		ui.Header("Cleaning...")
 		ui.Line("")
 
-		targets := []string{"ios", "android", ".phptoro-cache"}
+		targets := []string{"ios", ".phptoro-cache"}
 		for _, t := range targets {
 			p := filepath.Join(root, t)
 			if _, err := os.Stat(p); err == nil {

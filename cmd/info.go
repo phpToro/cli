@@ -1,8 +1,6 @@
 package cmd
 
 import (
-	"fmt"
-
 	"github.com/phpToro/cli/internal/config"
 	"github.com/phpToro/cli/internal/ui"
 	"github.com/spf13/cobra"
@@ -42,15 +40,6 @@ var infoCmd = &cobra.Command{
 				rows = append(rows, []string{"Team ID:", cfg.Platforms.IOS.TeamID})
 			}
 			ui.Table(rows)
-		}
-
-		if cfg.Platforms.Android != nil {
-			ui.Line("")
-			ui.Header("Android")
-			ui.Table([][]string{
-				{"Min SDK:", fmt.Sprintf("%d", cfg.Platforms.Android.MinSdk)},
-				{"Target SDK:", fmt.Sprintf("%d", cfg.Platforms.Android.TargetSdk)},
-			})
 		}
 
 		return nil

@@ -35,24 +35,12 @@ type SplashConfig struct {
 }
 
 type PlatformsConfig struct {
-	IOS     *IOSConfig     `json:"ios,omitempty"`
-	Android *AndroidConfig `json:"android,omitempty"`
+	IOS *IOSConfig `json:"ios,omitempty"`
 }
 
 type IOSConfig struct {
 	DeploymentTarget string `json:"deploymentTarget,omitempty"`
 	TeamID           string `json:"teamId,omitempty"`
-}
-
-type AndroidConfig struct {
-	MinSdk       int              `json:"minSdk,omitempty"`
-	TargetSdk    int              `json:"targetSdk,omitempty"`
-	AdaptiveIcon *AdaptiveIcon    `json:"adaptiveIcon,omitempty"`
-}
-
-type AdaptiveIcon struct {
-	Foreground string `json:"foreground,omitempty"`
-	Background string `json:"background,omitempty"`
 }
 
 type StatusBarConfig struct {
