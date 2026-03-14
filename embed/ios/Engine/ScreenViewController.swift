@@ -145,6 +145,7 @@ final class ScreenViewController: UIViewController, WKScriptMessageHandler {
         super.viewSafeAreaInsetsDidChange()
         if !hasMounted {
             hasMounted = true
+            kernel.coordinator?.setActiveScreen(self)
             dbg.log("Screen", "\(shortName) first mount (safeArea: top=\(view.safeAreaInsets.top), bottom=\(view.safeAreaInsets.bottom))")
             mount()
         }
@@ -170,6 +171,7 @@ final class ScreenViewController: UIViewController, WKScriptMessageHandler {
 
     func rerender() {
         dbg.log("Screen", "\(shortName) rerender (hot reload)")
+        hasInitialLoad = false
         mount()
     }
 
@@ -218,7 +220,25 @@ final class ScreenViewController: UIViewController, WKScriptMessageHandler {
     /// `<link href="phptoro.ios.css">` resolves to `phptoro://localhost/phptoro.ios.css`.
     /// This allows plugins (e.g. camera) to save files anywhere in the sandbox and reference
     /// them via `phptoro://file/<path>`, avoiding WKWebView's `allowingReadAccessTo` limitations.
+    private var hasInitialLoad = false
+
     private func loadPage(_ contentHtml: String) {
+        // After initial load, swap #root innerHTML via JS (preserves scroll position)
+        if hasInitialLoad {
+            let escaped = contentHtml
+                .replacingOccurrences(of: "\\", with: "\\\\")
+                .replacingOccurrences(of: "`", with: "\\`")
+                .replacingOccurrences(of: "${", with: "\\${")
+            webView.evaluateJavaScript("document.getElementById('root').innerHTML=`\(escaped)`") { _, error in
+                if let error = error {
+                    dbg.error("Screen", "\(self.shortName) innerHTML update failed: \(error)")
+                }
+            }
+            dbg.log("Screen", "\(shortName) updated HTML (\(contentHtml.count) bytes)")
+            return
+        }
+
+        hasInitialLoad = true
         let safeBottom = view.safeAreaInsets.bottom
         let tags = Self.cachedAssetTags
 
